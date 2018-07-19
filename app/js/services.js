@@ -3805,8 +3805,8 @@ angular.module('myApp.services', ['myApp.i18n', 'izhukov.utils'])
 
           titlePromise = $interval(function () {
             if (titleChanged || !notificationsCount) {
-              titleChanged = false
-              document.title = titleBackup
+//              titleChanged = false
+//              document.title = titleBackup
               setFavicon()
             } else {
               titleChanged = true

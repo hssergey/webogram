@@ -268,7 +268,7 @@ gulp.task('watch', ['server', 'less'], function () {
 gulp.task('server', function (done) {
   http.createServer(
     st({ path: __dirname, index: 'index.html', cache: false })
-  ).listen(8000, done)
+  ).listen(8008, done)
 })
 
 gulp.task('clean', function () {
