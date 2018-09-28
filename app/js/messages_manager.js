@@ -125,7 +125,7 @@ angular.module('myApp.services')
       return $q.when({
         peerID: peerID,
         top_message: 0,
-        index: generateDialogIndex(generateDialogPinnedDate()),
+        index: generateDialogIndex(generateDialogPinnedDate(), null),
         pFlags: {}
       })
     }
@@ -200,8 +200,8 @@ angular.module('myApp.services')
         topDate = generateDialogPinnedDate()
       }
 
-      dialog.index = generateDialogIndex(topDate)
       dialog.peerID = peerID
+      dialog.index = generateDialogIndex(topDate, dialog)
 
       pushDialogToStorage(dialog, offsetDate)
 
@@ -315,20 +315,49 @@ angular.module('myApp.services')
       return 0x7fffff00 + ((pinnedIndex++) & 0xff)
     }
 
-    function generateDialogIndex (date) {
+    function generateDialogIndex (date, dialog) {
+		console.log("generateDialogIndex: " + date);
+		var lastIndex = parseInt(localStorage.getItem("lastDialogIndex"));
+		if(!lastIndex) {
+			lastIndex = 100;
+		}
+		if(dialog) {
+			localStorage.setItem("lastDiaogPeedID", dialog.peerID);
+			var dialogIndexes = {};
+			var dialogIndexesValue = localStorage.getItem("dialogIndexes");
+			if(dialogIndexesValue) {
+				dialogIndexes = JSON.parse(dialogIndexesValue);
+			}
+			if(dialog.peerID in dialogIndexes) {
+				console.log("got index from saved: " + dialogIndexes[dialog.peerID]);
+				return dialogIndexes[dialog.peerID];
+			}
+			dialogIndexes[dialog.peerID] = lastIndex;
+			localStorage.setItem("lastDialogIndex", lastIndex + 100);
+			localStorage.setItem("dialogIndexes", JSON.stringify(dialogIndexes));			
+			console.log("got dialog: ");
+			console.log(dialog);
+			return lastIndex;
+		}
       if (date === undefined) {
         date = tsNow(true) + ServerTimeManager.serverTimeOffset
       }
-      return (date * 0x10000) + ((++dialogsNum) & 0xFFFF)
+	  var index = (date * 0x10000) + ((++dialogsNum) & 0xFFFF)
+	  console.log("generateDialogIndex: " + index);
+      return index;
     }
 
     function pushDialogToStorage (dialog, offsetDate) {
+		console.log("pushDialogToStorage");
+		console.log(dialog);
+		console.log(offsetDate);
       var dialogs = dialogsStorage.dialogs
       var pos = getDialogByPeerID(dialog.peerID)[1]
       if (pos !== undefined) {
         dialogs.splice(pos, 1)
       }
 
+      /*
       if (offsetDate &&
           !dialog.pFlags.pinned &&
           (!dialogsOffsetDate || offsetDate < dialogsOffsetDate)) {
@@ -338,17 +367,16 @@ angular.module('myApp.services')
         }
         dialogsOffsetDate = offsetDate
       }
+      */
 
       var index = dialog.index
       var i
       var len = dialogs.length
       if (!len || index < dialogs[len - 1].index) {
         dialogs.push(dialog)
-      }
-      else if (index >= dialogs[0].index) {
+      } else if (index >= dialogs[0].index) {
         dialogs.unshift(dialog)
-      }
-      else {
+      } else {
         for (i = 0; i < len; i++) {
           if (index > dialogs[i].index) {
             dialogs.splice(i, 0, dialog)
@@ -3250,7 +3278,7 @@ angular.module('myApp.services')
             dialog.unread_count++
           }
           if (!dialog.pFlags.pinned || !dialog.index) {
-            dialog.index = generateDialogIndex(message.date)
+			dialog.index = generateDialogIndex(message.date, dialog)
           }
 
           newDialogsToHandle[peerID] = dialog
@@ -3299,7 +3327,7 @@ angular.module('myApp.services')
           }
 
           var dialog = foundDialog[0]
-          dialog.index = generateDialogIndex(generateDialogPinnedDate())
+          dialog.index = generateDialogIndex(generateDialogPinnedDate(), dialog)
           dialog.pFlags.pinned = true
           break
 
@@ -3341,7 +3369,7 @@ angular.module('myApp.services')
             }
 
             var dialog = foundDialog[0]
-            dialog.index = generateDialogIndex(generateDialogPinnedDate())
+            dialog.index = generateDialogIndex(generateDialogPinnedDate(), dialog)
             dialog.pFlags.pinned = true
 
             newDialogsToHandle[peerID] = dialog
@@ -3820,7 +3848,7 @@ angular.module('myApp.services')
           }
         }
         if (!dialog.pFlags.pinned) {
-          dialog.index = generateDialogIndex(topDate)
+           dialog.index = generateDialogIndex(topDate, dialog);
         }
         pushDialogToStorage(dialog)
 
